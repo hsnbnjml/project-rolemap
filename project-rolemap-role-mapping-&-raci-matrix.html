@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project RoleMap — Role Mapping & RACI Matrix</title>
+<meta name="description" content="Single-user RACI matrix app with per-project role mapping, audit trail, and Excel / PNG export. Aligned with PMI and Agile role definitions." />
+<style>
+:root{
+  --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+  --accent:#1f3b5c; --accent2:#2563eb; --danger:#dc2626; --ok:#16a34a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.45}
+.topbar{background:linear-gradient(120deg,#16283e,#1f3b5c 60%,#2a4d78);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:20;box-shadow:0 1px 8px rgba(15,23,42,.25)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:.2px}
+.brand small{display:block;font-weight:400;font-size:11.5px;opacity:.75;margin-top:1px}
+.top-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:8px;padding:8px 13px;font-size:13.5px;font-weight:600;cursor:pointer;background:#e2e8f0;color:#0f172a;transition:filter .15s, transform .05s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{filter:brightness(.95)} .btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent2);color:#fff}
+.btn.dark{background:#ffffff;color:var(--accent)}
+.btn.dark:hover{filter:brightness(1.06)}
+.btn.danger{background:#fee2e2;color:var(--danger)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.btn.small{padding:4px 9px;font-size:12.5px;border-radius:6px}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+.banner{max-width:1180px;margin:14px auto -6px;padding:10px 16px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;font-size:13.5px}
+.banner:empty{display:none}
+h1{font-size:22px;margin:0 0 4px} h2{font-size:16px;margin:0 0 10px} h3{font-size:14px;margin:0 0 8px}
+.sub{color:var(--muted);font-size:13.5px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px;margin-top:16px}
+.proj-card{display:flex;flex-direction:column;gap:8px}
+.proj-card .name{font-size:16px;font-weight:700;cursor:pointer;color:var(--accent)}
+.proj-card .name:hover{text-decoration:underline}
+.meta{display:flex;gap:6px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#e2e8f0;color:#475569}
+.badge.pmi{background:#dbeafe;color:#1d4ed8}
+.badge.agile{background:#ede9fe;color:#6d28d9}
+.badge.ext{background:#ffedd5;color:#c2410c}
+.badge.custom{background:#e2e8f0;color:#475569}
+.badge.warn{background:#fef3c7;color:#b45309}
+.badge.ok{background:#dcfce7;color:#15803d}
+.p-head{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px}
+.p-head .grow{flex:1;min-width:230px}
+input[type=text],textarea,select{font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;color:var(--ink);width:100%}
+input[type=text]:focus,textarea:focus,select:focus{outline:2px solid #bfdbfe;border-color:var(--accent2)}
+input.title-input{font-size:18px;font-weight:700}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin:14px 0 16px;flex-wrap:wrap}
+.tab{border:0;background:none;padding:9px 15px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+.legend{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend .k{display:inline-flex;align-items:center;gap:5px;font-weight:700}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.warnbox{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin:0 0 14px;color:#92400e;font-size:13px}
+.warnbox:empty{display:none}
+table.matrix{border-collapse:separate;border-spacing:0;width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table.matrix th{background:var(--accent);color:#fff;text-align:left;padding:0 10px;vertical-align:middle}
+table.matrix th .rn{font-weight:700;font-size:12.5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+table.matrix th .rn .badge{background:rgba(255,255,255,.18);color:#e2e8f0}
+table.matrix th .rp{font-weight:400;font-size:11.5px;color:#cbd5e1;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.matrix td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:middle}
+table.matrix tr:nth-child(even) td{background:#f8fafc}
+.taskcell{display:flex;gap:6px;align-items:center}
+.taskcell input{border:1px solid transparent;background:transparent;padding:6px 6px}
+.taskcell input:hover,.taskcell input:focus{border-color:var(--line);background:#fff}
+.rac{width:34px;height:34px;border-radius:8px;border:1px solid transparent;font-weight:800;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.rac.R{background:#dcfce7;color:#15803d;border-color:#bbf7d0}
+.rac.A{background:#fef3c7;color:#b45309;border-color:#fde68a}
+.rac.C{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe}
+.rac.I{background:#e2e8f0;color:#475569;border-color:#cbd5e1}
+.rac.E{background:#f8fafc;color:#cbd5e1;border:1px dashed #e2e8f0}
+.rac:hover{filter:brightness(.96)}
+.scrollx{overflow-x:auto;border-radius:12px}
+.grid2{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;align-items:start}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.panel h3{display:flex;align-items:center;gap:8px}
+.list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:#fff}
+.row .grow{flex:1;min-width:120px}
+.row .inputs{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
+.row .inputs input,.row .inputs textarea{padding:5px 8px;font-size:13px}
+.form{display:flex;flex-direction:column;gap:9px;margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+.frow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.frow input[type=text],.frow select{flex:1;min-width:130px}
+label.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);white-space:nowrap;cursor:pointer}
+table.audit{border-collapse:collapse;width:100%;background:#fff;font-size:13px}
+table.audit th{background:#f8fafc;text-align:left;padding:8px 10px;border-bottom:2px solid var(--line);font-size:12px;letter-spacing:.3px;color:var(--muted);text-transform:uppercase}
+table.audit td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.audit .ent{font-weight:700}
+.ebadge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;display:inline-block}
+.e-Project{background:#e0e7ff;color:#4338ca}
+.e-Person{background:#ccfbf1;color:#0f766e}
+.e-Role{background:#ede9fe;color:#6d28d9}
+.e-Task{background:#fef3c7;color:#b45309}
+.e-Matrix{background:#dbeafe;color:#1d4ed8}
+.e-System{background:#e2e8f0;color:#475569}
+.mono{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--muted)}
+footer{max-width:1180px;margin:26px auto 40px;padding:0 20px}
+details.guide{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+details.guide summary{font-weight:700;cursor:pointer;color:var(--accent)}
+details.guide h3{margin-top:16px}
+details.guide .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:8px 0}
+details.guide .kcard{border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px}
+details.guide .kcard b{display:flex;gap:7px;align-items:center}
+details.guide code{background:#f1f5f9;padding:1px 6px;border-radius:5px;font-size:12.5px}
+details.guide ol{padding-left:20px} details.guide li{margin:4px 0}
+.empty{border:2px dashed var(--line);border-radius:14px;padding:30px;text-align:center;color:var(--muted);margin-top:14px}
+.hero{background:linear-gradient(135deg,#1f3b5c,#2a4d78);color:#fff;border-radius:16px;padding:26px 28px;margin-top:16px}
+.hero p{opacity:.85;margin:6px 0 0}
+.statline{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.home-activity{margin-top:22px}
+.newform{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;margin-top:14px}
+.newform input{flex:2;min-width:200px} .newform textarea{flex:3;min-width:240px}
+del,mark{padding:0 2px;border-radius:3px}
+.notice{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="2" fill="#60a5fa"/><rect x="13" y="2" width="9" height="9" rx="2" fill="#fbbf24"/><rect x="2" y="13" width="9" height="9" rx="2" fill="#34d399"/><rect x="13" y="13" width="9" height="9" rx="2" fill="#94a3b8"/></svg>
+    <div>Project RoleMap<small>Single-user role mapping &amp; RACI matrix</small></div>
+  </div>
+  <div class="top-actions">
+    <button class="btn dark" id="btnBackup" data-act="backup" title="Download all data (projects + audit trail) as a JSON backup file">&#8681; Backup</button>
+    <button class="btn dark" id="btnImport" data-act="import" title="Restore from a backup JSON file">&#8679; Import backup</button>
+    <input type="file" id="fileImport" accept=".json,application/json" hidden />
+    <button class="btn danger" data-act="reset" title="Erase everything and start fresh">&#10005; Reset</button>
+  </div>
+</header>
+<div class="banner" id="banner"></div>
+<main id="app"></main>
+<footer>
+  <details class="guide">
+    <summary>&#9432; How to use Project RoleMap (definitions, rules, backup, publishing)</summary>
+    <h3>RACI definitions</h3>
+    <div class="cols">
+      <div class="kcard"><b><span class="dot" style="background:#dcfce7"></span>R — Responsible</b>Does the work to complete the task. One or more per task.</div>
+      <div class="kcard"><b><span class="dot" style="background:#fef3c7"></span>A — Accountable</b>Owns the outcome and signs off. <b>Exactly one per task.</b></div>
+      <div class="kcard"><b><span class="dot" style="background:#dbeafe"></span>C — Consulted</b>Two-way input before decisions or work. Their feedback is sought.</div>
+      <div class="kcard"><b><span class="dot" style="background:#e2e8f0"></span>I — Informed</b>Kept up to date on progress and outcomes. One-way.</div>
+    </div>
+    <h3>How this aligns with PMI &amp; Agile</h3>
+    <ul>
+      <li><b>PMI (PMBOK):</b> starter roles follow classic PMI stakeholders — Project Sponsor, Project Manager, Steering Committee, SME, QA, Business Analyst, Change Control Board.</li>
+      <li><b>Agile (Scrum Guide):</b> Product Owner, Scrum Master, Development Team, plus supporting roles (UX, DevOps). Mix them freely — each project picks its own role set.</li>
+      <li><b>External stakeholders:</b> the <span class="badge ext">External</span> "Customer Point of Contact" role represents the customer-side person you speak to about product deliverables, and the channel from whom you listen to and collect feedback. Map a different person to it per project.</li>
+      <li><b>Golden rules enforced:</b> exactly one A per task, at least one R per task, a person may play multiple roles, and a role may stay unassigned (blank).</li>
+    </ul>
+    <h3>Data, backup &amp; sharing</h3>
+    <ul>
+      <li>Your data lives in <b>your browser's local storage</b> — nothing is sent anywhere. It persists between visits on the same browser.</li>
+      <li><b>Backup</b> downloads a JSON file with all projects and the full audit trail. <b>Import backup</b> restores it (replaces current data).</li>
+      <li>Hand the app to a friend and they start fresh (empty storage). Give them your backup file and they can import it to start where you are.</li>
+      <li>Every change is recorded in the <b>Audit Log</b> for historical reference, and is included in the Excel export.</li>
+    </ul>
+    <h3>Exports</h3>
+    <ul>
+      <li><b>Excel (.xlsx)</b> — 3 sheets: color-coded RACI Matrix, Roles &amp; People, Audit Log.</li>
+      <li><b>PNG image</b> — a shareable picture of the matrix with colors and legend.</li>
+    </ul>
+  </details>
+</footer>
+<script>
+'use strict';
+// ============================================================
+// Utilities
+// ============================================================
+const $=s=>document.querySelector(s);
+function h(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function uid(){return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'id-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);}
+function slug(s){return String(s||'project').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'project';}
+function fmtTs(iso){try{return new Date(iso).toLocaleString();}catch(e){return iso;}}
+function dateStr(){return new Date().toISOString().slice(0,10);}
+function download(name,blob){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
+
+// ============================================================
+// EXPORT ENGINES (pure JS, zero dependencies)
+// ============================================================
+function crc32(bytes){
+  let table=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?(0xEDB88320^(c>>>1)):(c>>>1);table[n]=c>>>0;}
+  let crc=0xFFFFFFFF;for(let i=0;i<bytes.length;i++)crc=(crc>>>8)^table[(crc^bytes[i])&0xFF];
+  return (crc^0xFFFFFFFF)>>>0;
+}
+function zipStore(files){
+  const enc=new TextEncoder();
+  const parts=[],central=[];let offset=0;
+  const now=new Date();
+  const dosTime=((now.getHours()&31)<<11)|((now.getMinutes()&63)<<5)|((now.getSeconds()>>1)&31);
+  const dosDate=((((now.getFullYear()-1980)&127)<<9)|(((now.getMonth()+1)&15)<<5)|(now.getDate()&31));
+  let centralSize=0;
+  for(const f of files){
+    const nameB=enc.encode(f.name);const data=(typeof f.data==='string')?enc.encode(f.data):f.data;
+    const crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(8,0,true);
+    lh.setUint16(10,dosTime,true);lh.setUint16(12,dosDate,true);
+    lh.setUint32(14,crc,true);lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);
+    lh.setUint16(26,nameB.length,true);lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer),nameB,data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint16(10,0,true);
+    ch.setUint16(12,dosTime,true);ch.setUint16(14,dosDate,true);
+    ch.setUint32(16,crc,true);ch.setUint32(20,data.length,true);ch.setUint32(24,data.length,true);
+    ch.setUint16(28,nameB.length,true);ch.setUint16(30,0,true);ch.setUint16(32,0,true);ch.setUint16(34,0,true);
+    ch.setUint16(36,0,true);ch.setUint32(38,0,true);ch.setUint32(42,offset,true);
+    central.push(new Uint8Array(ch.buffer),nameB);
+    centralSize+=46+nameB.length;
+    offset+=30+nameB.length+data.length;
+  }
+  const cdStart=offset;
+  const eocd=new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0,0x06054b50,true);eocd.setUint16(4,0,true);eocd.setUint16(6,0,true);
+  eocd.setUint16(8,files.length,true);eocd.setUint16(10,files.length,true);
+  eocd.setUint32(12,centralSize,true);eocd.setUint32(16,cdStart,true);eocd.setUint16(20,0,true);
+  const all=[...parts,...central,new Uint8Array(eocd.buffer)];
+  let total=0;for(const p of all)total+=p.length;
+  const out=new Uint8Array(total);let pos=0;
+  for(const p of all){out.set(p,pos);pos+=p.length;}
+  return out;
+}
+function escXml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
+function colLetter(n){let s='';n++;while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
+function cellXml(ref,cell){
+  if(cell==null||cell.v==null||cell.v==='')return'';
+  const s=cell.s||0;
+  if(typeof cell.v==='number')return '<c r="'+ref+'" s="'+s+'"><v>'+cell.v+'</v></c>';
+  return '<c r="'+ref+'" t="inlineStr" s="'+s+'"><is><t xml:space="preserve">'+escXml(cell.v)+'</t></is></c>';
+}
+function sheetXml(rows,widths){
+  let x='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0" gridlines="false"/></sheetViews>';
+  if(widths&&widths.length)x+='<cols>'+widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols>';
+  x+='<sheetData>';
+  rows.forEach((row,ri)=>{x+='<row r="'+(ri+1)+'">';row.forEach((cell,ci)=>{x+=cellXml(colLetter(ci)+(ri+1),cell);});x+='</row>';});
+  x+='</sheetData></worksheet>';
+  return x;
+}
+const STYLES='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">\n<fonts count="5">\n<font><sz val="11"/><name val="Calibri"/><color rgb="FF1F2937"/></font>\n<font><b/><sz val="11"/><name val="Calibri"/><color rgb="FF1F2937"/></font>\n<font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font>\n<font><b/><sz val="14"/><name val="Calibri"/><color rgb="FF1F3B5C"/></font>\n<font><i/><sz val="10"/><name val="Calibri"/><color rgb="FF6B7280"/></font>\n</fonts>\n<fills count="9">\n<fill><patternFill patternType="none"/></fill>\n<fill><patternFill patternType="gray125"/></fill>\n<fill><patternFill patternType="solid"><fgColor rgb="FF1F3B5C"/><bgColor indexed="64"/></patternFill></fill>\n<fill><patternFill patternType="solid"><fgColor rgb="FFC6EFCE"/><bgColor indexed="64"/></patternFill></fill>\n<fill><patternFill patternType="solid"><fgColor rgb="FFFFE699"/><bgColor indexed="64"/></patternFill></fill>\n<fill><patternFill patternType="solid"><fgColor rgb="FFCFE2F3"/><bgColor indexed="64"/></patternFill></fill>\n<fill><patternFill patternType="solid"><fgColor rgb="FFEDEDED"/><bgColor indexed="64"/></patternFill></fill>\n<fill><patternFill patternType="solid"><fgColor rgb="FFF4CCCC"/><bgColor indexed="64"/></patternFill></fill>\n<fill><patternFill patternType="solid"><fgColor rgb="FFF8FAFC"/><bgColor indexed="64"/></patternFill></fill>\n</fills>\n<borders count="2">\n<border><left/><right/><top/><bottom/><diagonal/></border>\n<border><left style="thin"><color rgb="FFD1D5DB"/></left><right style="thin"><color rgb="FFD1D5DB"/></right><top style="thin"><color rgb="FFD1D5DB"/></top><bottom style="thin"><color rgb="FFD1D5DB"/></bottom><diagonal/></border>\n</borders>\n<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>\n<cellXfs count="11">\n<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>\n<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>\n<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>\n<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>\n<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>\n<xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>\n<xf numFmtId="0" fontId="1" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>\n<xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>\n<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0"/>\n<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0"/>\n<xf numFmtId="0" fontId="0" fillId="7" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>\n</cellXfs>\n<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>\n</styleSheet>';
+function buildXlsx(sheets){
+  const content='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+sheets.map((s,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+  const rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  const wb='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sheets.map((s,i)=>'<sheet name="'+escXml(s.name).slice(0,28)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join('')+'</sheets></workbook>';
+  const wbRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((s,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+  const files=[{name:'[Content_Types].xml',data:content},{name:'_rels/.rels',data:rootRels},{name:'xl/workbook.xml',data:wb},{name:'xl/_rels/workbook.xml.rels',data:wbRels},{name:'xl/styles.xml',data:STYLES}];
+  sheets.forEach((s,i)=>files.push({name:'xl/worksheets/sheet'+(i+1)+'.xml',data:sheetXml(s.rows,s.widths)}));
+  return zipStore(files);
+}
+// ===== END ENGINES =====
+
+// ============================================================
+// Constants
+// ============================================================
+const KEY='raci-studio-v1';
+const ROLE_LIBRARY=[
+  {name:'Project Sponsor',source:'PMI',desc:'Owns the business case; approves the charter and major changes; ultimate escalation path.'},
+  {name:'Project Manager',source:'PMI',desc:'Plans, executes, monitors and closes the project; manages scope, schedule, cost and risk.'},
+  {name:'Steering Committee',source:'PMI',desc:'Senior body providing direction, resolving escalations, approving phase gates.'},
+  {name:'Business Analyst',source:'PMI',desc:'Elicits, analyzes and documents requirements; bridges business and delivery.'},
+  {name:'Subject Matter Expert (SME)',source:'PMI',desc:'Provides specialized knowledge and consulted input in their domain.'},
+  {name:'Quality Assurance Lead',source:'PMI',desc:'Owns quality planning and verifies acceptance criteria.'},
+  {name:'Change Control Board',source:'PMI',desc:'Reviews and approves or rejects changes to baselines.'},
+  {name:'Product Owner',source:'Agile',desc:'Maximizes product value; owns and prioritizes the backlog; accepts deliverables.'},
+  {name:'Scrum Master',source:'Agile',desc:'Facilitates agile events, removes impediments, coaches the team.'},
+  {name:'Development Team',source:'Agile',desc:'Cross-functional group that builds the product increment.'},
+  {name:'UX Designer',source:'Agile',desc:'Designs usable experiences; validates designs with users.'},
+  {name:'DevOps / Release Engineer',source:'Agile',desc:'Owns CI/CD, environments and deployment.'},
+  {name:'Customer Point of Contact',source:'External',desc:'Customer-side point of contact: the person you speak to about product deliverables, and the channel from whom you listen to and collect feedback.'}
+];
+const SEED_ROLES=['Customer Point of Contact'];
+
+// ============================================================
+// State
+// ============================================================
+let storageOk=true;
+function loadState(){
+  try{
+    const raw=window.localStorage.getItem(KEY);
+    if(raw){const s=JSON.parse(raw);if(s&&Array.isArray(s.projects))return s;}
+  }catch(e){storageOk=false;}
+  return {projects:[],audit:[]};
+}
+function saveState(){
+  try{window.localStorage.setItem(KEY,JSON.stringify(state));}
+  catch(e){storageOk=false;}
+}
+let state=loadState();
+let view={page:'home',tab:'matrix',auditAll:false};
+function commit(){saveState();render();}
+function log(entity,action,detail,projectId){
+  state.audit.unshift({id:uid(),ts:new Date().toISOString(),projectId:projectId||null,entity:entity,action:action,detail:detail});
+  if(state.audit.length>3000)state.audit.length=3000;
+}
+function projById(id){return state.projects.find(p=>p.id===id);}
+function personById(p,id){return p.people.find(x=>x.id===id);}
+function rolesOfPerson(p,personId){return p.roles.filter(r=>r.personId===personId).map(r=>r.name);}
+function personLabel(p,role){
+  const per=role.personId?personById(p,role.personId):null;
+  return per?per.name:'\u2014 unassigned \u2014';
+}
+function srcBadge(src){return '<span class="badge '+({PMI:'pmi',Agile:'agile',External:'ext'}[src]||'custom')+'">'+h(src)+'</span>';}
+
+// ============================================================
+// Model operations
+// ============================================================
+function newProject(name,desc){
+  const roles=SEED_ROLES.map(n=>{
+    const lib=ROLE_LIBRARY.find(r=>r.name===n);
+    return {id:uid(),name:n,desc:lib?lib.desc:'',source:lib?lib.source:'Custom',personId:null};
+  });
+  return {
+    id:uid(),name:name,desc:desc||'',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
+    people:[],roles:roles,tasks:[],
+    matrix:{}
+  };
+}
+function matrixWarnings(p){
+  const warns=[];
+  p.tasks.forEach(t=>{
+    const letters=p.roles.map(r=>p.matrix[t.id+'|'+r.id]||'');
+    const a=letters.filter(l=>l==='A').length;
+    const r=letters.filter(l=>l==='R').length;
+    if(a===0&&letters.some(Boolean))warns.push('"'+t.name+'": no Accountable (A) \u2014 every task needs exactly one');
+    if(a>1)warns.push('"'+t.name+'": '+a+' Accountables \u2014 exactly one A allowed');
+    if(letters.some(Boolean)&&r===0)warns.push('"'+t.name+'": no Responsible (R) \u2014 someone must do the work');
+  });
+  return warns;
+}
+
+// ============================================================
+// Exports
+// ============================================================
+function exportExcel(p){
+  const roles=p.roles,tasks=p.tasks;
+  const rowsM=[];
+  rowsM.push([{v:p.name+' \u2014 RACI Matrix',s:8}]);
+  rowsM.push([{v:'Exported '+fmtTs(new Date().toISOString())+' \u2014 Project RoleMap',s:9}]);
+  rowsM.push([]);
+  rowsM.push([{v:'Task / Deliverable',s:1}].concat(roles.map(r=>({v:r.name+'\n('+personLabel(p,r)+')',s:1}))));
+  tasks.forEach(t=>{
+    rowsM.push([{v:t.name,s:2}].concat(roles.map(r=>{
+      const L=p.matrix[t.id+'|'+r.id]||'';
+      return {v:L,s:L==='R'?4:L==='A'?5:L==='C'?6:L==='I'?7:3};
+    })));
+  });
+  rowsM.push([]);
+  rowsM.push([{v:'Legend',s:2}]);
+  rowsM.push([{v:'R = Responsible (does the work)'}]);
+  rowsM.push([{v:'A = Accountable (owns the outcome \u2014 exactly one per task)'}]);
+  rowsM.push([{v:'C = Consulted (two-way input)'}]);
+  rowsM.push([{v:'I = Informed (kept up to date)'}]);
+  const widthsM=[36].concat(roles.map(()=>12));
+  const rowsR=[[{v:'Role',s:1},{v:'Source',s:1},{v:'Assigned Person',s:1},{v:'Person Org',s:1},{v:'Description',s:1}]];
+  roles.forEach(r=>{
+    const per=r.personId?personById(p,r.personId):null;
+    rowsR.push([{v:r.name,s:2},{v:r.source,s:3},{v:per?per.name:'\u2014 unassigned \u2014',s:per?3:10},{v:per?per.org||'':'',s:3},{v:r.desc||'',s:3}]);
+  });
+  rowsR.push([]);
+  rowsR.push([{v:'People',s:8}]);
+  rowsR.push([{v:'Person',s:1},{v:'Org',s:1},{v:'External',s:1},{v:'Plays roles',s:1}]);
+  p.people.forEach(per=>{
+    rowsR.push([{v:per.name,s:2},{v:per.org||'',s:3},{v:per.external?'Yes':'',s:3},{v:rolesOfPerson(p,per.id).join(', ')||'\u2014',s:3}]);
+  });
+  const auditFor=state.audit.filter(a=>a.projectId===p.id||a.projectId===null);
+  const rowsA=[[{v:'Timestamp',s:1},{v:'Entity',s:1},{v:'Action',s:1},{v:'Detail',s:1}]];
+  auditFor.forEach(a=>rowsA.push([{v:fmtTs(a.ts),s:3},{v:a.entity,s:3},{v:a.action,s:3},{v:a.detail,s:3}]));
+  const x=buildXlsx([
+    {name:'RACI Matrix',rows:rowsM,widths:widthsM},
+    {name:'Roles & People',rows:rowsR,widths:[26,10,20,16,50]},
+    {name:'Audit Log',rows:rowsA,widths:[20,10,12,64]}
+  ]);
+  download(slug(p.name)+'-raci-'+dateStr()+'.xlsx',new Blob([x],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+}
+function exportPng(p){
+  const roles=p.roles,tasks=p.tasks;
+  const scale=2,pad=48,taskW=280,titleH=96,headerH=76,rowH=42,legendH=64;
+  const roleW=Math.max(96,Math.floor(680/Math.max(roles.length,1)));
+  const W=Math.min(6000,pad*2+taskW+roleW*roles.length);
+  const H=titleH+headerH+rowH*Math.max(1,tasks.length)+legendH;
+  const cv=document.createElement('canvas');
+  cv.width=W*scale;cv.height=H*scale;
+  const ctx=cv.getContext('2d');
+  ctx.scale(scale,scale);
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#0f172a';ctx.font='700 22px system-ui,sans-serif';ctx.textBaseline='alphabetic';
+  ctx.fillText('RACI Matrix \u2014 '+p.name,pad,44);
+  ctx.fillStyle='#64748b';ctx.font='400 12px system-ui,sans-serif';
+  ctx.fillText('Exported '+fmtTs(new Date().toISOString())+' \u2014 Project RoleMap',pad,64);
+  function trunc(s,px){let t=String(s==null?'':s);while(ctx.measureText(t).width>px&&t.length>1)t=t.slice(0,-1);return t===String(s)?t:t.slice(0,-1)+'\u2026';}
+  // header
+  const hy=titleH;
+  ctx.fillStyle='#1f3b5c';ctx.fillRect(pad,hy,taskW,headerH);
+  ctx.fillStyle='#fff';ctx.font='700 13px system-ui,sans-serif';
+  ctx.fillText(trunc('Task / Deliverable',taskW-16),pad+10,hy+42);
+  roles.forEach((r,i)=>{
+    const x=pad+taskW+i*roleW;
+    ctx.fillStyle='#1f3b5c';ctx.fillRect(x,hy,roleW,headerH);
+    ctx.fillStyle='#fff';ctx.font='700 11.5px system-ui,sans-serif';
+    ctx.fillText(trunc(r.name,roleW-10),x+6,hy+30);
+    ctx.fillStyle='#cbd5e1';ctx.font='400 10.5px system-ui,sans-serif';
+    ctx.fillText(trunc(personLabel(p,r),roleW-10),x+6,hy+46);
+    if(r.source==='External'){ctx.fillStyle='#fbbf24';ctx.fillRect(x+6,hy+54,7,7);}
+  });
+  // rows
+  const fills={R:'#dcfce7',A:'#fef3c7',C:'#dbeafe',I:'#e2e8f0'};
+  tasks.forEach((t,ri)=>{
+    const y=hy+headerH+ri*rowH;
+    if(ri%2===1){ctx.fillStyle='#f8fafc';ctx.fillRect(pad,y,taskW+roleW*roles.length,rowH);}
+    ctx.fillStyle='#1f2937';ctx.font='500 12.5px system-ui,sans-serif';
+    ctx.fillText(trunc(t.name,taskW-16),pad+10,y+26);
+    roles.forEach((r,i)=>{
+      const L=p.matrix[t.id+'|'+r.id]||'';
+      const x=pad+taskW+i*roleW;
+      ctx.fillStyle=fills[L]||'#ffffff';
+      ctx.fillRect(x,y,roleW,rowH);
+      if(L){
+        ctx.fillStyle={R:'#15803d',A:'#b45309',C:'#1d4ed8',I:'#475569'}[L];
+        ctx.font='800 15px system-ui,sans-serif';
+        ctx.fillText(L,x+roleW/2-5,y+27);
+      }
+    });
+  });
+  // grid
+  ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1;
+  const tableW=taskW+roleW*roles.length,tableH=headerH+rowH*Math.max(1,tasks.length);
+  ctx.strokeRect(pad+.5,hy+.5,tableW-1,tableH-1);
+  for(let i=1;i<tasks.length;i++){const y=hy+headerH+i*rowH;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(pad+tableW,y);ctx.stroke();}
+  ctx.strokeRect(pad+.5,hy+.5,taskW-1,tableH-1);
+  for(let i=1;i<roles.length;i++){const x=pad+taskW+i*roleW;ctx.beginPath();ctx.moveTo(x,hy);ctx.lineTo(x,hy+tableH);ctx.stroke();}
+  // legend
+  const ly=hy+tableH+30;
+  const legend=[['R','Responsible'],['A','Accountable'],['C','Consulted'],['I','Informed']];
+  let lx=pad;
+  ctx.font='600 12px system-ui,sans-serif';
+  legend.forEach(([L,t])=>{
+    ctx.fillStyle=fills[L];ctx.fillRect(lx,ly-11,16,16);
+    ctx.fillStyle='#1f2937';ctx.fillText(L+' = '+t,lx+22,ly);
+    lx+=ctx.measureText(L+' = '+t).width+44;
+  });
+  ctx.fillStyle='#94a3b8';ctx.font='400 11px system-ui,sans-serif';
+  ctx.fillText('Exactly one A per task \u2014 unassigned roles are allowed \u2014 a person may play multiple roles',pad,ly+26);
+  cv.toBlob(b=>{if(b)download(slug(p.name)+'-raci-'+dateStr()+'.png',b);},'image/png');
+}
+function exportBackup(){
+  const payload=JSON.stringify({app:'raci-studio',version:1,exportedAt:new Date().toISOString(),state:state},null,2);
+  log('System','backup','Backup downloaded ('+state.projects.length+' projects, '+state.audit.length+' audit entries)',null);
+  download('rolemap-backup-'+dateStr()+'.json',new Blob([payload],{type:'application/json'}));
+  commit();
+}
+function importBackupFile(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      const st=data&&data.state&&Array.isArray(data.state.projects)?data.state:null;
+      if(!st||!Array.isArray(st.audit))throw new Error('bad shape');
+      if(!confirm('Import backup from '+(data.exportedAt?fmtTs(data.exportedAt):'unknown date')+'?\n\nThis REPLACES all current data ('+state.projects.length+' projects, '+state.audit.length+' audit entries) with the backup content ('+st.projects.length+' projects, '+st.audit.length+' audit entries).'))return;
+      state=st;
+      log('System','import','Backup imported ('+st.projects.length+' projects, '+st.audit.length+' audit entries)',null);
+      view={page:'home',tab:'matrix',auditAll:false};
+      commit();
+    }catch(e){alert('Could not read that file. Make sure it is a Project RoleMap backup (.json).');}
+  };
+  reader.readAsText(file);
+}
+function resetAll(){
+  if(!confirm('Erase ALL projects and the audit log?\n\nConsider downloading a Backup first. This cannot be undone.'))return;
+  state={projects:[],audit:[]};
+  log('System','reset','All data cleared \u2014 fresh start',null);
+  view={page:'home',tab:'matrix',auditAll:false};
+  commit();
+}
+
+// ============================================================
+// Rendering
+// ============================================================
+function render(){
+  const app=$('#app');
+  const banner=$('#banner');
+  banner.innerHTML=storageOk?'':'<b>Preview sandbox:</b> storage is blocked here, so data will not persist and downloads may be blocked. Download this file and open it in your browser (or host it \u2014 see the guide below) for full persistence and exports.';
+  if(view.page==='project'){
+    const p=projById(view.id);
+    if(!p){view={page:'home',tab:'matrix',auditAll:false};return render();}
+    app.innerHTML=projectHtml(p);
+  }else{
+    app.innerHTML=homeHtml();
+  }
+}
+function homeHtml(){
+  const cards=state.projects.map(p=>{
+    const unassigned=p.roles.filter(r=>!r.personId).length;
+    return '<div class="card proj-card">'
+      +'<div class="name" data-act="open" data-id="'+p.id+'">'+h(p.name)+'</div>'
+      +(p.desc?'<div class="sub">'+h(p.desc)+'</div>':'')
+      +'<div class="meta">'
+      +'<span class="badge">'+p.roles.length+' role'+(p.roles.length===1?'':'s')+'</span>'
+      +'<span class="badge">'+p.tasks.length+' task'+(p.tasks.length===1?'':'s')+'</span>'
+      +(unassigned?'<span class="badge warn">'+unassigned+' unassigned</span>':'<span class="badge ok">all roles assigned</span>')
+      +'</div>'
+      +'<div class="sub">Updated '+fmtTs(p.updatedAt)+'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:auto">'
+      +'<button class="btn primary small" data-act="open" data-id="'+p.id+'">Open</button>'
+      +'<button class="btn danger small" data-act="del-project" data-id="'+p.id+'">Delete</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+  const recent=state.audit.slice(0,10).map(a=>
+    '<tr><td class="mono">'+h(fmtTs(a.ts))+'</td>'
+    +'<td><span class="ebadge e-'+h(a.entity)+'">'+h(a.entity)+'</span></td>'
+    +'<td>'+h(a.action)+'</td><td>'+h(a.detail)+'</td>'
+    +'<td class="sub">'+h(a.projectId?(projById(a.projectId)?projById(a.projectId).name:'(deleted project)'):'\u2014 all \u2014')+'</td></tr>'
+  ).join('');
+  return '<h1>Projects</h1><div class="sub">Each project keeps its own people, roles, RACI matrix and audit trail. Roles vary per project; one person can hold several roles; a role can stay blank.</div>'
+    +'<div class="card" style="margin-top:16px">'
+    +'<h3>&#43; New project</h3>'
+    +'<div class="newform">'
+    +'<input type="text" id="npName" placeholder="Project name (e.g. Customer Portal Revamp)" maxlength="80">'
+    +'<textarea id="npDesc" rows="1" placeholder="Optional one-line description" style="flex:3;min-width:240px;resize:vertical"></textarea>'
+    +'<button class="btn primary" data-act="new-project">Create project</button>'
+    +'</div>'
+    +'<div class="notice">Starts with the external Customer Point of Contact role and an empty matrix \u2014 add your people, internal roles and tasks.</div>'
+    +'</div>'
+    +(state.projects.length?'<div class="proj-grid">'+cards+'</div>'
+      :'<div class="empty">No projects yet \u2014 create your first one above.<br><span class="sub">Tip: the Customer Point of Contact role is pre-seeded for the customer-side contact on deliverables and feedback.</span></div>')
+    +(state.audit.length?'<div class="home-activity card"><h3>Recent activity (all projects)</h3><div class="scrollx"><table class="audit"><thead><tr><th>When</th><th>Entity</th><th>Action</th><th>Detail</th><th>Project</th></tr></thead><tbody>'+recent+'</tbody></table></div></div>':'');
+}
+function projectHtml(p){
+  const unassigned=p.roles.filter(r=>!r.personId).length;
+  const head='<div class="p-head">'
+    +'<button class="btn ghost" data-act="back">&#8592; Projects</button>'
+    +'<div class="grow">'
+    +'<input type="text" class="title-input" data-ch="proj-name" data-id="'+p.id+'" value="'+h(p.name)+'" aria-label="Project name">'
+    +'<input type="text" data-ch="proj-desc" data-id="'+p.id+'" value="'+h(p.desc)+'" placeholder="Optional description" style="margin-top:6px;font-size:13px;color:var(--muted)">'
+    +'<div class="statline">'
+    +'<span class="badge">'+p.roles.length+' role'+(p.roles.length===1?'':'s')+'</span>'
+    +'<span class="badge">'+p.tasks.length+' task'+(p.tasks.length===1?'':'s')+'</span>'
+    +(unassigned?'<span class="badge warn">'+unassigned+' role'+(unassigned===1?'':'s')+' unassigned</span>':'<span class="badge ok">all roles assigned</span>')
+    +'<span class="badge">updated '+h(fmtTs(p.updatedAt))+'</span>'
+    +'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    +'<button class="btn primary" data-act="export-xlsx" data-id="'+p.id+'">&#128202; Excel</button>'
+    +'<button class="btn" data-act="export-png" data-id="'+p.id+'">&#128444; PNG</button>'
+    +'</div>'
+    +'</div>';
+  const tabs='<div class="tabs">'
+    +'<button class="tab'+(view.tab==='matrix'?' active':'')+'" data-act="tab" data-tab="matrix">RACI Matrix</button>'
+    +'<button class="tab'+(view.tab==='roles'?' active':'')+'" data-act="tab" data-tab="roles">Roles &amp; People</button>'
+    +'<button class="tab'+(view.tab==='audit'?' active':'')+'" data-act="tab" data-tab="audit">Audit Log ('+state.audit.filter(a=>a.projectId===p.id).length+')</button>'
+    +'</div>';
+  let body='';
+  if(view.tab==='matrix')body=matrixTabHtml(p);
+  else if(view.tab==='roles')body=rolesTabHtml(p);
+  else body=auditTabHtml(p);
+  return head+tabs+body;
+}
+function matrixTabHtml(p){
+  const warns=matrixWarnings(p);
+  const warnHtml=warns.length?'<div class="warnbox"><b>RACI rule check:</b><ul style="margin:6px 0 0;padding-left:18px">'+warns.slice(0,8).map(w=>'<li>'+h(w)+'</li>').join('')+(warns.length>8?'<li>+'+(warns.length-8)+' more\u2026</li>':'')+'</ul></div>':'';
+  if(!p.roles.length){
+    return warnHtml+'<div class="empty">This project has no roles yet.<br><button class="btn primary" style="margin-top:10px" data-act="goto-roles">Go to Roles &amp; People to add roles</button></div>';
+  }
+  const headCells=p.roles.map(r=>
+    '<th><div class="rn">'+h(r.name)+(r.source==='External'?' <span class="badge ext">External</span>':'')+'</div><div class="rp" title="'+h(personLabel(p,r))+'">'+h(personLabel(p,r))+'</div></th>'
+  ).join('');
+  const rows=p.tasks.map(t=>{
+    const cells=p.roles.map(r=>{
+      const k=t.id+'|'+r.id;
+      const L=p.matrix[k]||'';
+      return '<td><button class="rac '+(L||'E')+'" data-act="cycle" data-t="'+t.id+'" data-r="'+r.id+'" data-p="'+p.id+'" title="'+h(r.name+' \u2014 '+personLabel(p,r))+'\nClick to cycle R \u2192 A \u2192 C \u2192 I \u2192 clear">'+(L||'\u00b7')+'</button></td>';
+    }).join('');
+    return '<tr><td class="taskcol"><div class="taskcell"><input type="text" data-ch="task-name" data-p="'+p.id+'" data-id="'+t.id+'" value="'+h(t.name)+'"><button class="btn danger small" data-act="del-task" data-p="'+p.id+'" data-id="'+t.id+'" title="Delete task">\u00d7</button></div></td>'+cells+'</tr>';
+  }).join('');
+  return warnHtml
+    +'<div class="toolbar">'
+    +'<button class="btn" data-act="add-task" data-id="'+p.id+'">&#43; Add task / deliverable</button>'
+    +'<button class="btn ghost" data-act="clear-matrix" data-id="'+p.id+'">Clear all letters</button>'
+    +'<div class="legend">'
+    +'<span class="k"><span class="dot" style="background:#dcfce7"></span>R Responsible</span>'
+    +'<span class="k"><span class="dot" style="background:#fef3c7"></span>A Accountable</span>'
+    +'<span class="k"><span class="dot" style="background:#dbeafe"></span>C Consulted</span>'
+    +'<span class="k"><span class="dot" style="background:#e2e8f0"></span>I Informed</span>'
+    +'</div></div>'
+    +'<div class="scrollx"><table class="matrix"><thead><tr><th style="min-width:220px">Task / Deliverable</th>'+headCells+'</tr></thead><tbody>'+(rows||'')+'</tbody></table></div>'
+    +(p.tasks.length?'':'<div class="empty">No tasks yet \u2014 add the first task / deliverable above.</div>');
+}
+function rolesTabHtml(p){
+  const peopleRows=p.people.map(per=>{
+    const plays=rolesOfPerson(p,per.id);
+    return '<div class="row">'
+      +'<div class="inputs"><input type="text" data-ch="person-name" data-p="'+p.id+'" data-id="'+per.id+'" value="'+h(per.name)+'">'
+      +'<input type="text" data-ch="person-org" data-p="'+p.id+'" data-id="'+per.id+'" value="'+h(per.org||'')+'" placeholder="Org / team (optional)" style="font-size:12px"></div>'
+      +(per.external?'<span class="badge ext">external</span>':'')
+      +'<button class="btn small" data-act="toggle-ext" data-p="'+p.id+'" data-id="'+per.id+'" title="Toggle external / internal">'+(per.external?'make internal':'mark external')+'</button>'
+      +(plays.length?'<span class="badge" title="'+h(plays.join(', '))+'">plays '+plays.length+' role'+(plays.length===1?'':'s')+'</span>':'')
+      +'<button class="btn danger small" data-act="del-person" data-p="'+p.id+'" data-id="'+per.id+'" title="Delete person">\u00d7</button>'
+      +'</div>';
+  }).join('');
+  const roleRows=p.roles.map(r=>
+    '<div class="row">'
+    +'<div class="inputs">'
+    +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="text" data-ch="role-name" data-p="'+p.id+'" data-id="'+r.id+'" value="'+h(r.name)+'">'+(r.source==='External'?'<span class="badge ext">External</span>':'')+'</div>'
+    +'<textarea data-ch="role-desc" data-p="'+p.id+'" data-id="'+r.id+'" rows="2" placeholder="Role description (optional)" style="font-size:12px;resize:vertical">'+h(r.desc||'')+'</textarea>'
+    +'</div>'
+    +'<select data-ch="role-person" data-p="'+p.id+'" data-id="'+r.id+'" style="max-width:190px" title="Map a person to this role (can stay blank)">'
+    +'<option value="">\u2014 unassigned \u2014</option>'
+    +p.people.map(per=>'<option value="'+per.id+'"'+(r.personId===per.id?' selected':'')+'>'+h(per.name)+(per.org?' ('+h(per.org)+')':'')+'</option>').join('')
+    +'</select>'
+    +'<button class="btn danger small" data-act="del-role" data-p="'+p.id+'" data-id="'+r.id+'" title="Delete role and its matrix column">\u00d7</button>'
+    +'</div>'
+  ).join('');
+  const libOptions=['PMI','Agile','External'].map(src=>
+    '<optgroup label="'+src+'">'+ROLE_LIBRARY.filter(r=>r.source===src).map(r=>{
+      const added=p.roles.some(x=>x.name===r.name);
+      return '<option value="'+h(r.name)+'"'+(added?' disabled':'')+'>'+h(r.name)+(added?' (already added)':'')+'</option>';
+    }).join('')+'</optgroup>'
+  ).join('');
+  return '<div class="grid2">'
+    +'<div class="card panel"><h3>&#128100; People</h3><div class="sub">Anyone involved in this project \u2014 team members or customer-side contacts. A person can play multiple roles.</div>'
+    +(peopleRows?'<div class="list">'+peopleRows+'</div>':'<div class="empty" style="padding:16px">No people yet.</div>')
+    +'<div class="form"><div class="frow"><input type="text" id="prName" placeholder="Person name" maxlength="60"><input type="text" id="prOrg" placeholder="Org / team (optional)" style="max-width:170px"><label class="chk"><input type="checkbox" id="prExt"> external</label><button class="btn primary small" data-act="add-person" data-id="'+p.id+'">Add person</button></div></div></div>'
+    +'<div class="card panel"><h3>&#127919; Roles &amp; mapping <span class="badge">'+p.roles.length+'</span></h3><div class="sub">Roles vary per project. Map each role to a person, or leave it blank. The orange External badge marks customer-side roles.</div>'
+    +(roleRows?'<div class="list">'+roleRows+'</div>':'<div class="empty" style="padding:16px">No roles yet.</div>')
+    +'<div class="form">'
+    +'<div class="frow"><select id="rlPick"><option value="" selected disabled>Pick a role from the PMI / Agile library\u2026</option>'+libOptions+'</select></div>'
+    +'<div class="frow"><input type="text" id="rlCustom" placeholder="\u2026 or type a custom role name (e.g. Data Migration Lead)"><button class="btn primary small" data-act="add-role" data-id="'+p.id+'">Add role</button></div>'
+    +'</div></div>'
+    +'</div>';
+}
+function auditTabHtml(p){
+  const rows=state.audit.filter(a=>view.auditAll||(a.projectId===p.id||a.projectId===null)).map(a=>
+    '<tr><td class="mono">'+h(fmtTs(a.ts))+'</td>'
+    +'<td><span class="ebadge e-'+h(a.entity)+'">'+h(a.entity)+'</span></td>'
+    +'<td>'+h(a.action)+'</td><td>'+h(a.detail)+'</td></tr>'
+  ).join('');
+  return '<div class="toolbar">'
+    +'<label class="chk"><input type="checkbox" data-ch="audit-filter"'+(view.auditAll?' checked':'')+'> show entries from all projects</label>'
+    +'<span class="sub">Every change in this project is recorded here for your historical reference. It is included in the Excel export.</span>'
+    +'</div>'
+    +(rows?'<div class="scrollx"><table class="audit"><thead><tr><th>When</th><th>Entity</th><th>Action</th><th>Detail</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+    :'<div class="empty">No audit entries for this project yet.</div>');
+}
+
+// ============================================================
+// Event delegation
+// ============================================================
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');
+  if(!el)return;
+  const act=el.dataset.act;
+  const id=el.dataset.id;
+  const ctx=el.dataset.p||id;
+  const p=ctx?projById(ctx):null;
+  if(act!=='import'&&act!=='backup'&&act!=='reset'&&el.dataset.p&&!p)return;
+  switch(act){
+    case 'open':view={page:'project',id:id,tab:'matrix',auditAll:false};render();break;
+    case 'back':view={page:'home',tab:'matrix',auditAll:false};render();break;
+    case 'tab':view.tab=el.dataset.tab;render();break;
+    case 'goto-roles':view.tab='roles';render();break;
+    case 'new-project':{
+      const name=($('#npName').value||'').trim();
+      if(!name){alert('Give the project a name first.');return;}
+      const desc=($('#npDesc').value||'').trim();
+      const p2=newProject(name,desc);
+      state.projects.unshift(p2);
+      log('Project','created','Project "'+name+'" created with the Customer Point of Contact role',p2.id);
+      view={page:'project',id:p2.id,tab:'roles',auditAll:false};
+      commit();
+      break;
+    }
+    case 'del-project':{
+      if(!p)return;
+      if(!confirm('Delete project "'+p.name+'"?\nThis removes its roles, people, matrix and keeps the audit trail (marked as deleted project).'))return;
+      state.projects=state.projects.filter(x=>x.id!==id);
+      log('Project','deleted','Project "'+p.name+'" deleted',null);
+      view={page:'home',tab:'matrix',auditAll:false};
+      commit();
+      break;
+    }
+    case 'add-task':{
+      if(!p)return;
+      const t={id:uid(),name:'New task / deliverable'};
+      p.tasks.push(t);
+      p.updatedAt=new Date().toISOString();
+      log('Task','created','Task "'+t.name+'" added',p.id);
+      commit();
+      break;
+    }
+    case 'del-task':{
+      if(!p)return;
+      const t=p.tasks.find(x=>x.id===el.dataset.id);
+      if(!t)return;
+      if(!confirm('Delete task "'+t.name+'"?'))return;
+      p.tasks=p.tasks.filter(x=>x.id!==t.id);
+      Object.keys(p.matrix).forEach(k=>{if(k.startsWith(t.id+'|'))delete p.matrix[k];});
+      p.updatedAt=new Date().toISOString();
+      log('Task','deleted','Task "'+t.name+'" deleted (its RACI cells removed)',p.id);
+      commit();
+      break;
+    }
+    case 'cycle':{
+      const pp=projById(el.dataset.p);
+      if(!pp)return;
+      const k=el.dataset.t+'|'+el.dataset.r;
+      const order=['','R','A','C','I'];
+      const cur=pp.matrix[k]||'';
+      const next=order[(order.indexOf(cur)+1)%order.length];
+      const t=pp.tasks.find(x=>x.id===el.dataset.t);
+      const r=pp.roles.find(x=>x.id===el.dataset.r);
+      if(next)pp.matrix[k]=next;else delete pp.matrix[k];
+      pp.updatedAt=new Date().toISOString();
+      log('Matrix','cell-set','"'+(t?t.name:'?')+'" \u00d7 "'+(r?r.name:'?')+'" \u2192 '+(next||'cleared')+(cur?' (was '+cur+')':''),pp.id);
+      commit();
+      break;
+    }
+    case 'clear-matrix':{
+      if(!p)return;
+      if(!Object.keys(p.matrix).length){alert('Matrix is already empty.');return;}
+      if(!confirm('Clear ALL RACI letters in this project? (Tasks and roles are kept.)'))return;
+      const n=Object.keys(p.matrix).length;
+      p.matrix={};
+      p.updatedAt=new Date().toISOString();
+      log('Matrix','cleared','All '+n+' RACI letters cleared',p.id);
+      commit();
+      break;
+    }
+    case 'add-person':{
+      if(!p)return;
+      const name=($('#prName').value||'').trim();
+      if(!name){alert('Enter a name.');return;}
+      const org=($('#prOrg').value||'').trim();
+      const external=$('#prExt').checked;
+      const per={id:uid(),name:name,org:org,external:external};
+      p.people.push(per);
+      p.updatedAt=new Date().toISOString();
+      log('Person','created','Person "'+name+'"'+(org?' ('+org+')':'')+(external?' [external]':'')+' added',p.id);
+      commit();
+      break;
+    }
+    case 'del-person':{
+      if(!p)return;
+      const per=personById(p,el.dataset.id);
+      if(!per)return;
+      const plays=rolesOfPerson(p,per.id);
+      if(!confirm('Delete person "'+per.name+'"?'+(plays.length?' They will be unassigned from: '+plays.join(', ')+'.':'')))return;
+      p.people=p.people.filter(x=>x.id!==per.id);
+      p.roles.forEach(r=>{if(r.personId===per.id)r.personId=null;});
+      p.updatedAt=new Date().toISOString();
+      log('Person','deleted','Person "'+per.name+'" deleted'+(plays.length?' \u2014 unassigned from: '+plays.join(', '):''),p.id);
+      commit();
+      break;
+    }
+    case 'toggle-ext':{
+      if(!p)return;
+      const per=personById(p,el.dataset.id);
+      if(!per)return;
+      per.external=!per.external;
+      p.updatedAt=new Date().toISOString();
+      log('Person','updated','Person "'+per.name+'": external = '+(per.external?'yes':'no'),p.id);
+      commit();
+      break;
+    }
+    case 'add-role':{
+      if(!p)return;
+      const pick=$('#rlPick').value;
+      const custom=($('#rlCustom').value||'').trim();
+      let name='',source='Custom',desc='';
+      if(custom){name=custom;}
+      else if(pick){const lib=ROLE_LIBRARY.find(r=>r.name===pick);if(!lib)return;name=lib.name;source=lib.source;desc=lib.desc;}
+      else{alert('Pick a library role or type a custom role name.');return;}
+      if(p.roles.some(r=>r.name.toLowerCase()===name.toLowerCase())){alert('That role already exists in this project.');return;}
+      const r={id:uid(),name:name,desc:desc,source:source,personId:null};
+      p.roles.push(r);
+      p.updatedAt=new Date().toISOString();
+      log('Role','created','Role "'+name+'" added ['+source+']',p.id);
+      commit();
+      break;
+    }
+    case 'del-role':{
+      if(!p)return;
+      const r=p.roles.find(x=>x.id===el.dataset.id);
+      if(!r)return;
+      if(!confirm('Delete role "'+r.name+'"?\nIts matrix column and letters are removed too.'))return;
+      p.roles=p.roles.filter(x=>x.id!==r.id);
+      Object.keys(p.matrix).forEach(k=>{if(k.endsWith('|'+r.id))delete p.matrix[k];});
+      p.updatedAt=new Date().toISOString();
+      log('Role','deleted','Role "'+r.name+'" deleted (its matrix column removed)',p.id);
+      commit();
+      break;
+    }
+    case 'export-xlsx':if(p){exportExcel(p);log('System','export','Excel export generated for "'+p.name+'"',p.id);saveState();}break;
+    case 'export-png':if(p){exportPng(p);log('System','export','PNG image export generated for "'+p.name+'"',p.id);saveState();}break;
+    case 'backup':exportBackup();break;
+    case 'import':$('#fileImport').click();break;
+    case 'reset':resetAll();break;
+  }
+});
+document.addEventListener('change',e=>{
+  const el=e.target.closest('[data-ch]');
+  if(!el)return;
+  const ch=el.dataset.ch;
+  if(ch==='audit-filter'){view.auditAll=el.checked;render();return;}
+  const p=projById(el.dataset.p);
+  if(!p)return;
+  const val=el.value;
+  switch(ch){
+    case 'proj-name':{
+      const nv=val.trim();
+      if(!nv){alert('Project name cannot be empty.');render();return;}
+      if(nv!==p.name){log('Project','renamed','Renamed "'+p.name+'" \u2192 "'+nv+'"',p.id);p.name=nv;p.updatedAt=new Date().toISOString();}
+      break;
+    }
+    case 'proj-desc':{
+      if(val!==p.desc){log('Project','updated','Description changed'+(p.desc?' (was: '+p.desc.slice(0,60)+')':''),p.id);p.desc=val;p.updatedAt=new Date().toISOString();}
+      break;
+    }
+    case 'person-name':{
+      const per=personById(p,el.dataset.id);
+      if(!per)break;
+      const nv=val.trim();
+      if(!nv){alert('Name cannot be empty.');render();return;}
+      if(nv!==per.name){log('Person','renamed','Person "'+per.name+'" \u2192 "'+nv+'"',p.id);per.name=nv;p.updatedAt=new Date().toISOString();}
+      break;
+    }
+    case 'person-org':{
+      const per=personById(p,el.dataset.id);
+      if(!per)break;
+      if(val!==per.org){log('Person','updated','Person "'+per.name+'": org set to "'+val+'"',p.id);per.org=val;p.updatedAt=new Date().toISOString();}
+      break;
+    }
+    case 'person-ext':{
+      const per=personById(p,el.dataset.id);
+      if(!per)break;
+      log('Person','updated','Person "'+per.name+'": external = '+(el.checked?'yes':'no'),p.id);
+      per.external=el.checked;p.updatedAt=new Date().toISOString();
+      break;
+    }
+    case 'role-name':{
+      const r=p.roles.find(x=>x.id===el.dataset.id);
+      if(!r)break;
+      const nv=val.trim();
+      if(!nv){alert('Role name cannot be empty.');render();return;}
+      if(nv!==r.name){log('Role','renamed','Role "'+r.name+'" \u2192 "'+nv+'"',p.id);r.name=nv;p.updatedAt=new Date().toISOString();}
+      break;
+    }
+    case 'role-desc':{
+      const r=p.roles.find(x=>x.id===el.dataset.id);
+      if(!r)break;
+      if(val!==r.desc){log('Role','updated','Role "'+r.name+'": description changed',p.id);r.desc=val;p.updatedAt=new Date().toISOString();}
+      break;
+    }
+    case 'role-person':{
+      const r=p.roles.find(x=>x.id===el.dataset.id);
+      if(!r)break;
+      const per=val?personById(p,val):null;
+      const before=r.personId?personById(p,r.personId):null;
+      r.personId=per?per.id:null;
+      p.updatedAt=new Date().toISOString();
+      log('Role','assigned','Role "'+r.name+'" mapped to '+(per?'"'+per.name+'"':'\u2014 unassigned \u2014')+(before?' (was "'+before.name+'")':''),p.id);
+      break;
+    }
+    case 'task-name':{
+      const t=p.tasks.find(x=>x.id===el.dataset.id);
+      if(!t)break;
+      const nv=val.trim();
+      if(!nv){alert('Task name cannot be empty.');render();return;}
+      if(nv!==t.name){log('Task','renamed','Task "'+t.name+'" \u2192 "'+nv+'"',p.id);t.name=nv;p.updatedAt=new Date().toISOString();}
+      break;
+    }
+  }
+  saveState();
+});
+$('#fileImport').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];
+  if(f)importBackupFile(f);
+  e.target.value='';
+});
+render();
+</script>
+</body>
+</html>
